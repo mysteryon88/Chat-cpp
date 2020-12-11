@@ -52,6 +52,9 @@ END_MESSAGE_MAP()
 
 CChatTPDlg::CChatTPDlg(CWnd* pParent /*=nullptr*/)
 	: CDialogEx(IDD_CHATTP_DIALOG, pParent)
+	, Nikname(_T("Введите никнейм"))
+	, Port(_T("777"))
+	, IPAddress(0)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -59,12 +62,18 @@ CChatTPDlg::CChatTPDlg(CWnd* pParent /*=nullptr*/)
 void CChatTPDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_Text(pDX, IDC_Name, Nikname);
+	DDX_Text(pDX, IDC_IP_Adderss, IPAddress);
+	DDX_Text(pDX, IDC_Port, Port);
+	DDX_Control(pDX, IDC_IPADDRESS2, IPAddControl);
 }
 
 BEGIN_MESSAGE_MAP(CChatTPDlg, CDialogEx)
 	ON_WM_SYSCOMMAND()
 	ON_WM_PAINT()
 	ON_WM_QUERYDRAGICON()
+	ON_BN_CLICKED(IDC_B_Client, &CChatTPDlg::OnBnClickedBClient)
+	ON_BN_CLICKED(IDC_B_Send_File, &CChatTPDlg::OnBnClickedBSendFile)
 END_MESSAGE_MAP()
 
 
@@ -153,3 +162,36 @@ HCURSOR CChatTPDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
+
+
+void CChatTPDlg::OnBnClickedBClient()
+{
+	//BYTE p1, p2, p3, p4; // Четыре поля адреса (p1.p2.p3.p4)
+	//CString p, s;
+	//IPAddControl.GetAddress(p1, p2, p3, p4); // Получить значения адреса
+	//p.Format(L"%d.", p1); // Преобразовать их в строку
+	//s = p;
+	//p.Format(L"%d.", p2);
+	//s += p;
+	//p.Format(L"%d.", p3);
+	//s += p;
+	//p.Format(L"%d", p4);
+	//s += p;
+	//AfxMessageBox(s);
+}
+
+
+void CChatTPDlg::OnBnClickedBSendFile()
+{
+	CFileDialog dlg(TRUE);
+	CString FullFilename;
+	if (dlg.DoModal() == IDOK) {
+		FullFilename = dlg.m_ofn.lpstrFile;
+	}
+	MessageBox(FullFilename);
+
+}
+void CChatTPDlg::OnOK(){}
+void CChatTPDlg::OnCancel() {
+	if (MessageBox(L"Закрыть программу?", L"Chat", MB_YESNO | MB_ICONQUESTION) == IDYES) 	EndDialog(0);
+}

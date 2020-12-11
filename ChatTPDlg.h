@@ -31,4 +31,17 @@ protected:
 	afx_msg void OnPaint();
 	afx_msg HCURSOR OnQueryDragIcon();
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg void OnBnClickedBClient();
+	afx_msg void OnBnClickedBSendFile();
+	void OnOK();
+	void OnCancel();
+	// никнейм
+	CString Nikname;
+	// Порт
+	CString Port;
+	// IP адрес
+	DWORD IPAddress;
+	// Управление элементом ip
+	CIPAddressCtrl IPAddControl;
 };
