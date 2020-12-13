@@ -4,6 +4,10 @@
 #define VC_EXTRALEAN            // Исключите редко используемые компоненты из заголовков Windows
 #endif
 
+#define WINVER 0x0A00
+#define _WIN32_WINNT 0x0A00
+
+
 #include "targetver.h"
 
 #define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS      // некоторые конструкторы CString будут явными
