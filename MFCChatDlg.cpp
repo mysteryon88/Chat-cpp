@@ -33,6 +33,7 @@ void CMFCChatDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_B_Send_File, ButtonSendFileControl);
 	DDX_Control(pDX, IDC_EDIT3, SendWindowControl);
 	DDX_Control(pDX, IDC_EDIT4, ChatWindowControl);
+	DDX_Control(pDX, IDC_IP, IPv4);
 }
 
 BEGIN_MESSAGE_MAP(CMFCChatDlg, CDialogEx)
@@ -82,8 +83,8 @@ BOOL CMFCChatDlg::OnInitDialog()
 
 	NiknameControl.SetLimitText(12);
 
-	//CString MyIP = FindIP();
-	
+	IPv4.SetWindowText(L"Ваш IP" + FindIP());
+
 	return TRUE;  
 }
 
@@ -444,23 +445,27 @@ void CMFCChatDlg::OnAccept(void)
 
 CString CMFCChatDlg::FindIP()
 {
-	CString IP;/*
+	CString IP;
 	std::string line;
-	SetConsoleCP(1251);
-	SetConsoleOutputCP(1251);
-	
+	short count = 0;
 	system("ipconfig>ip.txt");
 	std::ifstream IPfile(L"ip.txt");
 	if (IPfile.is_open())
-	{
-		while(getline(IPfile, line))
+	{		
+		while (getline(IPfile, line))
 		{
-			IP.Format(L"%[]", line);
-			MessageBox(IP);
+			if (line.find("IPv4") != -1)
+			{
+				count++;
+				IP = line.c_str();
+				IP = IP.Right(IP.GetLength() - 37);
+				//обычно 2 раза попадается в файлике на винде
+				if (count == 2)	break; 
+			}
 		}
 	}
-	*/
-	//IPfile.close();
+	IPfile.close();
+	std::remove("ip.txt");
 	return IP;
 }
 

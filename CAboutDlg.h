@@ -14,4 +14,7 @@ public:
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    
+public:
+	DECLARE_MESSAGE_MAP()
+	afx_msg void OnNMClickSyslink1(NMHDR* pNMHDR, LRESULT* pResult);
 };

@@ -127,4 +127,5 @@ public:
 	void OnAccept(void);
 	//поиск своего IP
     CString	FindIP();
+	CStatic IPv4;
 };
