@@ -25,25 +25,12 @@ struct SENDBUFFER
 		ZeroMemory(buffer, sizeof(TCHAR) * 202);
 	}
 	
-	int typemessage;
-	int countpeople;
+	uint8_t typemessage;
+	uint8_t countpeople;
 	bool stopchat;
 	TCHAR name[14];
 	TCHAR buffer[202];
 };
-
-struct SENDFILE
-{
-	SENDFILE(int len)
-	{
-		filename = L"";
-		ZeroMemory(buffer, sizeof(char) * len);
-	}
-
-	CString filename;
-	char* buffer;
-};
-
 
 // Диалоговое окно CMFCChatDlg
 class CMFCChatDlg : public CDialogEx
