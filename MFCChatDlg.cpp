@@ -1,6 +1,8 @@
 ﻿#include "pch.h"
 #include "MFCChatDlg.h"
 
+
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -218,44 +220,41 @@ void CMFCChatDlg::OnBnClickedBSendFile()
 {
 	CFileDialog dlg(TRUE);
 	CString path, filename;
+	static uint8_t numderfile = 0;
 
-	if (dlg.DoModal() == IDOK) {
-		path = dlg.m_ofn.lpstrFile;
-	}
-
-	short lenpath = path.GetLength();
+	if (dlg.DoModal() == IDOK) path = dlg.m_ofn.lpstrFile;
+	
+	
+	filename.Format(L"%d", numderfile);
+	uint16_t lenpath = path.GetLength();
 	std::string::size_type found = path.ReverseFind(L'\\');
-	filename = path.Right(lenpath - found - 1);
+	filename += path.Right(lenpath - found - 1);
 
 	std::ifstream file(path, std::ios::binary);
 	if (file.is_open())
 	{
 		SENDBUFFER sb;
 
-		int len = filename.GetLength();
+		uint16_t len = filename.GetLength();
 		memcpy(sb.filename, filename.GetBuffer(), sizeof(TCHAR) * len);
 
 		sb.typemessage = m_TypeMessage::tmFile;
 
-		file.seekg(0, std::ios::end);//указатель в файле на конец
-		uint32_t length = file.tellg();//столько прочитаем из файла и передадим(размер файла узнаем)
-		file.seekg(0, std::ios::beg);//указатель на начало файла
-		uint32_t temp = length;
-		//for (uint32_t i = 0; i < ceil(length/2048); i++) {
-		//	file.read(sb.filebuffer, 2048);//читаем в него
-		//	temp -= 2048;
-		//	if (temp < 2048) sb.filebuffersize = temp;
-		//	else sb.filebuffersize = 2048;
-		//	SendBuffer(sb, true);
-		//	
-		//}
-	    while (!file.eof()) 
-		{
-		    //ZeroMemory(sb.filebuffer, sizeof(char) * 2048);
-			file.read(sb.filebuffer, 2048);//читаем в него
+		file.seekg(0, std::ios::end);
+		uint32_t length = file.tellg();
+		file.seekg(0, std::ios::beg);
+
+		uint32_t ostatok = length % PACK;
+		uint32_t end = ceil(length / PACK);
+
+		for (uint32_t i = 0; i <= end; i++) {
+			file.read(sb.filebuffer, PACK);
+			i == end ? sb.filebuffersize = ostatok : sb.filebuffersize = PACK;
 			SendBuffer(sb, true);
 		}
 		file.close();
+		SendToChat(L"Файл "+ CString(sb.filename) + L" отправлен!");
+		numderfile++;
 	}
 }
 
@@ -549,7 +548,7 @@ void CMFCChatDlg::OnReceive(void)
 		ChatWindowControl.GetWindowText(strChat);
 		strChat += L"    " + CString(sb.name) + L": " + CString(sb.buffer) + L"\r\n";
 		ChatWindowControl.SetWindowText(strChat);
-		unsigned short number_line = ChatWindowControl.GetLineCount();
+		uint16_t number_line = ChatWindowControl.GetLineCount();
 		ChatWindowControl.LineScroll(number_line);
 	}
 	break;
@@ -570,18 +569,17 @@ void CMFCChatDlg::OnReceive(void)
 			strChat += L"    " + CString(sb.name) + L" - покинул(а) чат!" + L"\r\n";
 		}
 		ChatWindowControl.SetWindowText(strChat);
-		unsigned short number_line = ChatWindowControl.GetLineCount();
+		uint16_t number_line = ChatWindowControl.GetLineCount();
 		ChatWindowControl.LineScroll(number_line);
 	}
 	break;
 	case m_TypeMessage::tmFile:
 	{ 
-		std::ofstream fout(CString(sb.filename), std::ios::binary | std::ios::app);
+
+		std::ofstream fout( CString(sb.filename), std::ios::binary | std::ios::app);
+
+		if (fout.is_open())	fout.write(sb.filebuffer, sb.filebuffersize);
 		
-		if (fout.is_open()) 
-		{
-			fout.write(sb.filebuffer, 2048);
-		}
 		fout.close();
 	}
 	break;

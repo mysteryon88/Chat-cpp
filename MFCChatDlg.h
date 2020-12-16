@@ -2,6 +2,9 @@
 #include "pch.h"
 #include "framework.h"
 
+//размер пакета для передачи файла
+#define PACK 2048
+
 struct SENDBUFFER
 {
 	SENDBUFFER()
@@ -13,17 +16,17 @@ struct SENDBUFFER
 		ZeroMemory(name, sizeof(TCHAR) * 14);
 		ZeroMemory(filename, sizeof(TCHAR) * 33);
 		ZeroMemory(buffer, sizeof(TCHAR) * 202);
-		ZeroMemory(filebuffer, sizeof(char) * 2048);
+		ZeroMemory(filebuffer, sizeof(char) * PACK);
 	}
 	~SENDBUFFER() {}
 	bool stopchat;
 	uint8_t typemessage;
 	uint8_t countpeople;
-    unsigned short filebuffersize;
+    uint16_t filebuffersize;
 	TCHAR name[14];
 	TCHAR filename[33];
 	TCHAR buffer[202];
-    char filebuffer[2048];
+    char filebuffer[PACK];
 };
 
 
@@ -83,7 +86,6 @@ private:
 	CButton ButtonSendFileControl;
 	CButton ButtonStartServerControl;
 	CIPAddressCtrl IPControl;
-	
 	CEdit PortControl;
 	CEdit NiknameControl;
 	CEdit SendWindowControl;
