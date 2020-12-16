@@ -21,7 +21,7 @@
 
 #include <afxdisp.h>        // классы автоматизации MFC
 
-
+#include "afxdialogex.h"
 
 #ifndef _AFX_NO_OLE_SUPPORT
 #include <afxdtctl.h>           // поддержка MFC для типовых элементов управления Internet Explorer 4
@@ -35,10 +35,12 @@
 
 #include <afxsock.h>            // расширения сокетов MFC
 
-
-
-
-
+#include <vector>
+#include <fstream>
+#include <string>
+#include "MFCChat.h"
+#include "Sock.h"
+#include "CAboutDlg.h"
 
 
 #ifdef _UNICODE

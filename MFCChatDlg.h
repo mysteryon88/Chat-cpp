@@ -1,58 +1,49 @@
-﻿
-// MFCChatDlg.h: файл заголовка
-//
-
-#pragma once
+﻿#pragma once
 #include "pch.h"
-#include <afxwin.h>
-#include <vector>
-#include <fstream>
-#include <string>
 #include "framework.h"
-#include "MFCChat.h"
-#include "Sock.h"
-#include "CAboutDlg.h"
-
 
 struct SENDBUFFER
 {
 	SENDBUFFER()
 	{
+		stopchat = false;
 		typemessage = 0;
 		countpeople = 0;
-		stopchat = false;
+		filebuffersize = 0;
 		ZeroMemory(name, sizeof(TCHAR) * 14);
+		ZeroMemory(filename, sizeof(TCHAR) * 33);
 		ZeroMemory(buffer, sizeof(TCHAR) * 202);
+		ZeroMemory(filebuffer, sizeof(char) * 2048);
 	}
-	
+	~SENDBUFFER() {}
+	bool stopchat;
 	uint8_t typemessage;
 	uint8_t countpeople;
-	bool stopchat;
+    unsigned short filebuffersize;
 	TCHAR name[14];
+	TCHAR filename[33];
 	TCHAR buffer[202];
+    char filebuffer[2048];
 };
 
-// Диалоговое окно CMFCChatDlg
+
 class CMFCChatDlg : public CDialogEx
 {
-// Создание
-public:
-	CMFCChatDlg(CWnd* pParent = nullptr);	// стандартный конструктор
 
-// Данные диалогового окна
+public:
+	CMFCChatDlg(CWnd* pParent = nullptr);	
+
+
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_MFCCHAT_DIALOG };
 #endif
 
 	protected:
-	virtual void DoDataExchange(CDataExchange* pDX);	// поддержка DDX/DDV
+	virtual void DoDataExchange(CDataExchange* pDX);	
 
-
-// Реализация
 protected:
 	HICON m_hIcon;
 
-	// Созданные функции схемы сообщений
 	virtual BOOL OnInitDialog();
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 	afx_msg void OnPaint();
@@ -92,7 +83,7 @@ private:
 	CButton ButtonSendFileControl;
 	CButton ButtonStartServerControl;
 	CIPAddressCtrl IPControl;
-	DWORD IPValue;
+	
 	CEdit PortControl;
 	CEdit NiknameControl;
 	CEdit SendWindowControl;
@@ -100,6 +91,7 @@ private:
 	CStatic CountPeopleControl;
 	CSock MainSocket;
 	std::vector<CSock*> VecSockets;
+	DWORD IPValue;
 	CString NiknameVal;
 	CString PortVal;
 	enum m_TypeMessage { tmCountPeople = 1, tmChat, tmDisconnect, tmFile };

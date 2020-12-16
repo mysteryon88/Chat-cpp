@@ -1,7 +1,5 @@
 ﻿#include "pch.h"
 #include "MFCChatDlg.h"
-#include "afxdialogex.h"
-
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -225,22 +223,38 @@ void CMFCChatDlg::OnBnClickedBSendFile()
 		path = dlg.m_ofn.lpstrFile;
 	}
 
-	//MessageBox(path);
 	short lenpath = path.GetLength();
 	std::string::size_type found = path.ReverseFind(L'\\');
 	filename = path.Right(lenpath - found - 1);
-	MessageBox(filename);
 
 	std::ifstream file(path, std::ios::binary);
 	if (file.is_open())
 	{
-		file.seekg(0, std::ios::end);//указатель в файле на конец
-	    unsigned int length = file.tellg();//столько прочитаем из файла и передадим(размер файла узнаем)
-		file.seekg(0, std::ios::beg);//указатель на начало файла
-		//file.read(sf.buffer, length);//читаем в него
 		SENDBUFFER sb;
+
+		int len = filename.GetLength();
+		memcpy(sb.filename, filename.GetBuffer(), sizeof(TCHAR) * len);
+
 		sb.typemessage = m_TypeMessage::tmFile;
-	
+
+		file.seekg(0, std::ios::end);//указатель в файле на конец
+		uint32_t length = file.tellg();//столько прочитаем из файла и передадим(размер файла узнаем)
+		file.seekg(0, std::ios::beg);//указатель на начало файла
+		uint32_t temp = length;
+		//for (uint32_t i = 0; i < ceil(length/2048); i++) {
+		//	file.read(sb.filebuffer, 2048);//читаем в него
+		//	temp -= 2048;
+		//	if (temp < 2048) sb.filebuffersize = temp;
+		//	else sb.filebuffersize = 2048;
+		//	SendBuffer(sb, true);
+		//	
+		//}
+	    while (!file.eof()) 
+		{
+		    //ZeroMemory(sb.filebuffer, sizeof(char) * 2048);
+			file.read(sb.filebuffer, 2048);//читаем в него
+			SendBuffer(sb, true);
+		}
 		file.close();
 	}
 }
@@ -324,7 +338,7 @@ void CMFCChatDlg::OnBnClickedBSendMes()
 void CMFCChatDlg::SendToChat(CString strMessage)
 {
 	SENDBUFFER sb;
-	int len = strMessage.GetLength();
+	short len = strMessage.GetLength();
 	memcpy(sb.buffer, strMessage.GetBuffer(), sizeof(TCHAR) * len);
 	NiknameControl.GetWindowText(strMessage);
 	len = strMessage.GetLength();
@@ -342,11 +356,8 @@ void CMFCChatDlg::SendBuffer(SENDBUFFER sb, bool toserver)
 	{
 		for (uint8_t i = 0; i < (uint8_t)VecSockets.size(); i++)
 		{
-			int send = VecSockets[i]->Send(&sb, sizeof(SENDBUFFER));
-			if (send == sizeof(SENDBUFFER))
-			{
-				SendWindowControl.SetWindowText(L"");
-			}
+			unsigned int send = VecSockets[i]->Send(&sb, sizeof(SENDBUFFER));
+			if (send == sizeof(SENDBUFFER))	SendWindowControl.SetWindowText(L"");
 		}
 
 		// Если непосредственно отправку осуществляет сервер,
@@ -379,8 +390,7 @@ void CMFCChatDlg::SendBuffer(SENDBUFFER sb, bool toserver)
 	else if (ServerCheck == false)
 	{
 	    unsigned int send = MainSocket.Send(&sb, sizeof(SENDBUFFER));
-		if (send == sizeof(SENDBUFFER))
-			SendWindowControl.SetWindowText(L"");
+		if (send == sizeof(SENDBUFFER)) SendWindowControl.SetWindowText(L"");
 	}
 }
 
@@ -500,15 +510,17 @@ void CMFCChatDlg::OnReceive(void)
 
 				SendCountPeople();
 
-				// Отсылка принятого севером сообщения в сеть другим клиентам, 
-				// как зеркало, клиент может работать с другими клиентами в 
-				// сети только через сервер.
 				SendBuffer(sb, false);
-				 
+			
 				break;
 			}
 			// Рассылаем сообщения клиента по сети чата.
 			if (sb.typemessage == m_TypeMessage::tmChat)
+			{
+				SendBuffer(sb, false);
+				break;
+			}
+			if (sb.typemessage == m_TypeMessage::tmFile)
 			{
 				SendBuffer(sb, false);
 				break;
@@ -563,8 +575,14 @@ void CMFCChatDlg::OnReceive(void)
 	}
 	break;
 	case m_TypeMessage::tmFile:
-	{
-	
+	{ 
+		std::ofstream fout(CString(sb.filename), std::ios::binary | std::ios::app);
+		
+		if (fout.is_open()) 
+		{
+			fout.write(sb.filebuffer, 2048);
+		}
+		fout.close();
 	}
 	break;
 	default:
