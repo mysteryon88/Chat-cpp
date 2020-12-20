@@ -36,7 +36,7 @@ public:
 	void OnOK() {}
 	void OnCancel();
 	void SendToChat(CString strMessage);
-	void SendBuffer(SENDBUFFER sb, bool toserver);
+	void SendBuffer(SENDBUFFER sb, bool toserver, int8_t IndSock = -1);
 	void SendCountPeople(void);
 	void SendDisconnect(void);
 

@@ -245,7 +245,7 @@ void CMFCChatDlg::StopChat()
 void CMFCChatDlg::SendToChat(CString strMessage)
 {
 	SENDBUFFER sb;
-	short len = strMessage.GetLength();
+	uint16_t len = strMessage.GetLength();
 	memcpy(sb.buffer, strMessage.GetBuffer(), sizeof(TCHAR) * len);
 	NiknameControl.GetWindowText(strMessage);
 	len = strMessage.GetLength();
@@ -254,17 +254,18 @@ void CMFCChatDlg::SendToChat(CString strMessage)
 	SendBuffer(sb, true);
 }
 
-void CMFCChatDlg::SendBuffer(SENDBUFFER sb, bool toserver)
+void CMFCChatDlg::SendBuffer(SENDBUFFER sb, bool toserver, int8_t IndSock)
 {
-	// Если сокет не создан, нечего делать в этой функции.
 	if (MainSocket.m_hSocket == INVALID_SOCKET) return;
-
 	if (ServerCheck)
 	{
 		for (uint8_t i = 0; i < (uint8_t)VecSockets.size(); i++)
 		{
-			unsigned int send = VecSockets[i]->Send(&sb, sizeof(SENDBUFFER));
-			if (send == sizeof(SENDBUFFER))	SendWindowControl.SetWindowText(L"");
+			if (IndSock != i) {
+				uint32_t send = VecSockets[i]->Send(&sb, sizeof(SENDBUFFER));
+				if (send == sizeof(SENDBUFFER))	SendWindowControl.SetWindowText(L"");
+			}
+			
 		}
 		if (toserver)
 		{
@@ -274,7 +275,7 @@ void CMFCChatDlg::SendBuffer(SENDBUFFER sb, bool toserver)
 				ChatWindowControl.GetWindowText(strChat);
 				strChat += L"\n    " + CString(sb.name) + L": " + CString(sb.buffer) + L"\r\n";
 				ChatWindowControl.SetWindowText(strChat);
-				unsigned short number_line = ChatWindowControl.GetLineCount();
+				uint16_t number_line = ChatWindowControl.GetLineCount();
 				ChatWindowControl.LineScroll(number_line);
 			}
 			if (sb.typemessage == m_TypeMessage::tmDisconnect)
@@ -283,15 +284,15 @@ void CMFCChatDlg::SendBuffer(SENDBUFFER sb, bool toserver)
 				ChatWindowControl.GetWindowText(strChat);
 				strChat += L"\n    " + CString(sb.name) + L": " + L"Чат остановлен!" + L"\r\n";
 				ChatWindowControl.SetWindowText(strChat);
-				unsigned short number_line = ChatWindowControl.GetLineCount();
+				uint16_t number_line = ChatWindowControl.GetLineCount();
 				ChatWindowControl.LineScroll(number_line);
 			}
 		}
 
 	}
-	else if (ServerCheck == false)
+	else if (!ServerCheck)
 	{
-	    unsigned int send = MainSocket.Send(&sb, sizeof(SENDBUFFER));
+		uint32_t send = MainSocket.Send(&sb, sizeof(SENDBUFFER));
 		if (send == sizeof(SENDBUFFER)) SendWindowControl.SetWindowText(L"");
 	}
 }
@@ -383,7 +384,7 @@ void CMFCChatDlg::OnReceive(void)
 			}
 			if (sb.typemessage == m_TypeMessage::tmFile)
 			{
-				SendBuffer(sb, false);
+				SendBuffer(sb, false, index);
 				break;
 			}
 		}
@@ -429,9 +430,7 @@ void CMFCChatDlg::OnReceive(void)
 	case m_TypeMessage::tmFile:
 	{ 
 		std::ofstream fout( CString(sb.filename), std::ios::binary | std::ios::app);
-
 		if (fout.is_open())	fout.write(sb.filebuffer, sb.filebuffersize);
-		
 		fout.close();
 	}
 	break;
