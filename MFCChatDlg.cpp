@@ -207,6 +207,7 @@ void CMFCChatDlg::OnBnClickedBSendFile()
 			file.read(sb.filebuffer, PACK);
 			i == end ? sb.filebuffersize = ostatok : sb.filebuffersize = PACK;
 			SendBuffer(sb, true);
+			Sleep(50);
 		}
 		file.close();
 		SendToChat(L"Файл "+ CString(sb.filename) + L" отправлен!");
@@ -434,8 +435,5 @@ void CMFCChatDlg::OnReceive(void)
 		fout.close();
 	}
 	break;
-	default:
-		AfxMessageBox(L"Неизвестное сообщение!");
-		break;
 	}
 }

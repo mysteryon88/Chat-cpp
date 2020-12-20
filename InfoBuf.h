@@ -2,7 +2,7 @@
 #include "framework.h"
 
 //размер пакета для передачи файла
-constexpr auto PACK = 2048;
+constexpr auto PACK = 4096;
 
 struct SENDBUFFER
 {
@@ -17,6 +17,8 @@ struct SENDBUFFER
 		ZeroMemory(buffer, sizeof(TCHAR) * 202);
 		ZeroMemory(filebuffer, sizeof(char) * PACK);
 	}
+	
+
 	~SENDBUFFER() {}
 	bool stopchat;
 	uint8_t typemessage;
