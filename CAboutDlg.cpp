@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "CAboutDlg.h"
 
-
 CAboutDlg::CAboutDlg() : CDialogEx(IDD_ABOUTBOX)
 {
 }
@@ -16,7 +15,6 @@ END_MESSAGE_MAP()
 
 void CAboutDlg::OnNMClickSyslink1(NMHDR* pNMHDR, LRESULT* pResult)
 {
-	// TODO: добавьте свой код обработчика уведомлений
 	*pResult = 0;
 
 	ShellExecute(NULL, L"open", L"https://github.com/mysteryon88", NULL, NULL, SW_SHOW);
