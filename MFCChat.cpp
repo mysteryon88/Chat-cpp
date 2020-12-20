@@ -7,7 +7,6 @@
 #define new DEBUG_NEW
 #endif
 
-
 BEGIN_MESSAGE_MAP(CMFCChatApp, CWinApp)
 	ON_COMMAND(ID_HELP, &CWinApp::OnHelp)
 END_MESSAGE_MAP()

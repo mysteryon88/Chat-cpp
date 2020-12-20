@@ -40,6 +40,7 @@
 #include <string>
 #include "MFCChat.h"
 #include "Sock.h"
+#include "Service.h"
 #include "CAboutDlg.h"
 
 

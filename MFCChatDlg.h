@@ -1,34 +1,7 @@
 ﻿#pragma once
 #include "pch.h"
 #include "framework.h"
-
-//размер пакета для передачи файла
-#define PACK 2048
-
-struct SENDBUFFER
-{
-	SENDBUFFER()
-	{
-		stopchat = false;
-		typemessage = 0;
-		countpeople = 0;
-		filebuffersize = 0;
-		ZeroMemory(name, sizeof(TCHAR) * 14);
-		ZeroMemory(filename, sizeof(TCHAR) * 33);
-		ZeroMemory(buffer, sizeof(TCHAR) * 202);
-		ZeroMemory(filebuffer, sizeof(char) * PACK);
-	}
-	~SENDBUFFER() {}
-	bool stopchat;
-	uint8_t typemessage;
-	uint8_t countpeople;
-    uint16_t filebuffersize;
-	TCHAR name[14];
-	TCHAR filename[33];
-	TCHAR buffer[202];
-    char filebuffer[PACK];
-};
-
+#include "InfoBuf.h"
 
 class CMFCChatDlg : public CDialogEx
 {
@@ -59,27 +32,14 @@ public:
 	afx_msg void OnBnClickedBSendFile();
 	afx_msg	void OnBnClickedBStopChat();
 	afx_msg void OnBnClickedBSendMes();
-	//проверка имени
-	bool QueryName(void);
-	//Запреты 
-	void DisabledControl(bool server);
-	//Разрешения
-	void EnabledControl(void);
-	//Закрытие чата
 	void StopChat();
-	//Перегрузка для ОК
-	void OnOK();
-	//Перегрузка для выхода
+	void OnOK() {}
 	void OnCancel();
-	//Послать строку-сообщение в чат
 	void SendToChat(CString strMessage);
-	// Послать буфер подготовленного сообщения в сеть
 	void SendBuffer(SENDBUFFER sb, bool toserver);
-	// Сервер отправляет клиентам количество людей в чате
 	void SendCountPeople(void);
-	// Формируем и отправляем сообщение об отключении от сети
 	void SendDisconnect(void);
-private:
+
 	CButton ButtonClientControl;
 	CButton ButtonStopChatControl;
 	CButton ButtonSendMesControl;
@@ -91,22 +51,19 @@ private:
 	CEdit SendWindowControl;
 	CEdit ChatWindowControl;
 	CStatic CountPeopleControl;
-	CSock MainSocket;
-	std::vector<CSock*> VecSockets;
-	DWORD IPValue;
+	CStatic IPv4;
 	CString NiknameVal;
 	CString PortVal;
+	DWORD IPValue;
+
+	Service myServ;
+	CSock MainSocket;
+	std::vector<CSock*> VecSockets;
+
 	enum m_TypeMessage { tmCountPeople = 1, tmChat, tmDisconnect, tmFile };
-	//что запущено сервер true, клиент false
+
 	bool ServerCheck;
-public:
-	// Извлечение сообщений из сети чата
 	void OnReceive(void);
-	// Событие подключения, вызывается на стороне клиента
 	void OnConnect(BOOL Error);
-	// Принимаем запросы на подключения
 	void OnAccept(void);
-	//поиск своего IP
-    CString	FindIP();
-	CStatic IPv4;
 };

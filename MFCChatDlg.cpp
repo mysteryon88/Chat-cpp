@@ -1,8 +1,6 @@
 ﻿#include "pch.h"
 #include "MFCChatDlg.h"
 
-
-
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
@@ -48,9 +46,6 @@ BEGIN_MESSAGE_MAP(CMFCChatDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_B_Send_Mes, &CMFCChatDlg::OnBnClickedBSendMes)
 END_MESSAGE_MAP()
 
-
-// Обработчики сообщений CMFCChatDlg
-
 BOOL CMFCChatDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
@@ -72,19 +67,21 @@ BOOL CMFCChatDlg::OnInitDialog()
 		}
 	}
 
-	SetIcon(m_hIcon, TRUE);			// Крупный значок
-	SetIcon(m_hIcon, FALSE);		// Мелкий значок
+	SetIcon(m_hIcon, TRUE);			
+	SetIcon(m_hIcon, FALSE);		
 
 	BYTE p1 = 127, p2 = 0, p3 = 0, p4 = 1;
 	IPControl.SetAddress(p1, p2, p3, p4);
 
 	MainSocket.m_pParent = this;
-		
+
+	myServ.m_pParent = this;
+
 	SendWindowControl.SetLimitText(200);
 
 	NiknameControl.SetLimitText(12);
 
-	IPv4.SetWindowText(L"Ваш IP" + FindIP());
+	IPv4.SetWindowText(L"Ваш IP" + myServ.FindIP());
 
 	return TRUE;  
 }
@@ -96,10 +93,7 @@ void CMFCChatDlg::OnSysCommand(UINT nID, LPARAM lParam)
 		CAboutDlg dlgAbout;
 		dlgAbout.DoModal();
 	}
-	else
-	{
-		CDialogEx::OnSysCommand(nID, lParam);
-	}
+	else CDialogEx::OnSysCommand(nID, lParam);	
 }
 
 void CMFCChatDlg::OnPaint()
@@ -119,10 +113,7 @@ void CMFCChatDlg::OnPaint()
 
 		dc.DrawIcon(x, y, m_hIcon);
 	}
-	else
-	{
-		CDialogEx::OnPaint();
-	}
+	else CDialogEx::OnPaint();
 }
 
 HCURSOR CMFCChatDlg::OnQueryDragIcon()
@@ -130,15 +121,9 @@ HCURSOR CMFCChatDlg::OnQueryDragIcon()
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
-void CMFCChatDlg::OnOK() {}
-
 void CMFCChatDlg::OnCancel()
 {
-	if (MessageBox(L"Закрыть программу?", L"Chat", MB_YESNO | MB_ICONQUESTION) == IDYES)
-	{
-		StopChat();
-		EndDialog(0);
-	}
+	myServ.Close();
 }
 
 void CMFCChatDlg::OnBnClickedBClient()
@@ -146,40 +131,17 @@ void CMFCChatDlg::OnBnClickedBClient()
 	ServerCheck = false;
 	if (MainSocket.m_hSocket != INVALID_SOCKET) return;
 
-	if (!QueryName())
-	{
-		MessageBox(L"Введите свое имя для чата!", L"Chat", MB_OK | MB_ICONWARNING);
-		StopChat();
-		return;
-	}
+	if (!myServ.Verify()) return;
 
-	if (MainSocket.Create() == TRUE)
+	if (MainSocket.Create())
 	{
-		BYTE p1, p2, p3, p4;
 		CString temp, IPAdressServer, strPort;
-		IPControl.GetAddress(p1, p2, p3, p4);
-		temp.Format(L"%d.", p1);
-		IPAdressServer = temp;
-		temp.Format(L"%d.", p2);
-		IPAdressServer += temp;
-		temp.Format(L"%d.", p3);
-		IPAdressServer += temp;
-		temp.Format(L"%d", p4);
-		IPAdressServer += temp;
-		PortControl.GetWindowText(strPort);// _ttoi(strPort)
+		IPAdressServer = myServ.GetIP();
+		PortControl.GetWindowText(strPort);
 		if (MainSocket.Connect(IPAdressServer, _ttoi(strPort)) == FALSE)
 		{
-			// В ассинхронном режиме код этой ошибки
-			// считается как ожидание события подключения,
-			// т.е. практически успешный возврат.
-			if (GetLastError() == WSAEWOULDBLOCK)
-			{
-				DisabledControl(false);
-			}
-			else
-			{
-				StopChat();
-			}
+			if (GetLastError() == WSAEWOULDBLOCK) myServ.DisabledControl(false);
+			else StopChat();
 		}
 	}
 }
@@ -189,12 +151,7 @@ void CMFCChatDlg::OnBnClickedBServer()
 	ServerCheck = true;
 	if (MainSocket.m_hSocket != INVALID_SOCKET) return;
 
-	if (!QueryName())
-	{
-		MessageBox(L"Введите свое имя для чата!", L"Chat", MB_OK | MB_ICONWARNING);
-		StopChat();
-		return;
-	}
+	if (!myServ.Verify()) return;
 
 	CString Port;
 	PortControl.GetWindowText(Port);
@@ -209,7 +166,7 @@ void CMFCChatDlg::OnBnClickedBServer()
 		if (MainSocket.Listen() == FALSE) StopChat();
 		else
 		{
-			DisabledControl(true);
+			myServ.DisabledControl(true);
 			SetWindowText(L"Сервер запущен, сервер ждёт подключения!");
 			CountPeopleControl.SetWindowText(L"В чате 1 человек");
 		}
@@ -218,14 +175,13 @@ void CMFCChatDlg::OnBnClickedBServer()
 
 void CMFCChatDlg::OnBnClickedBSendFile()
 {
-	CFileDialog dlg(TRUE);
-	CString path, filename;
+	CString filename;
 	static uint8_t numderfile = 0;
 
-	if (dlg.DoModal() == IDOK) path = dlg.m_ofn.lpstrFile;
-	
-	
-	filename.Format(L"%d", numderfile);
+	CString path = myServ.OpenFile();
+	if (path.IsEmpty()) return;
+
+	filename.Format(L"%d-", numderfile);
 	uint16_t lenpath = path.GetLength();
 	std::string::size_type found = path.ReverseFind(L'\\');
 	filename += path.Right(lenpath - found - 1);
@@ -258,43 +214,11 @@ void CMFCChatDlg::OnBnClickedBSendFile()
 	}
 }
 
-bool CMFCChatDlg::QueryName(void)
+void CMFCChatDlg::OnBnClickedBSendMes()
 {
-	CString strName;
-	NiknameControl.GetWindowText(strName);
-	if (strName == NiknameVal || strName.IsEmpty())return false;
-
-	return true;
-}
-
-void CMFCChatDlg::DisabledControl(bool server)
-{
-	// Запреты.
-	IPControl.EnableWindow(FALSE);
-	PortControl.EnableWindow(FALSE);
-	ButtonSendMesControl.EnableWindow(FALSE);
-	ButtonSendFileControl.EnableWindow(FALSE);
-
-	if (server) ButtonClientControl.EnableWindow(FALSE);
-	else ButtonStartServerControl.EnableWindow(FALSE);
-	
-	// Разрешения.
-	// Разрешить возможность выхода из чата.
-	ButtonStopChatControl.EnableWindow(TRUE);
-}
-
-void CMFCChatDlg::EnabledControl(void)
-{
-	// Разрешения.
-	IPControl.EnableWindow(TRUE);
-	PortControl.EnableWindow(TRUE);
-	ButtonClientControl.EnableWindow(TRUE);
-	ButtonStartServerControl.EnableWindow(TRUE);
-
-	// Запреты.
-	ButtonStopChatControl.EnableWindow(FALSE);
-	ButtonSendFileControl.EnableWindow(FALSE);
-	ButtonSendMesControl.EnableWindow(FALSE);
+	CString StrChat;
+	SendWindowControl.GetWindowText(StrChat);
+	SendToChat(StrChat);
 }
 
 void CMFCChatDlg::OnBnClickedBStopChat()
@@ -304,7 +228,6 @@ void CMFCChatDlg::OnBnClickedBStopChat()
 
 void CMFCChatDlg::StopChat()
 {
-	// Отсылаем сигнал об отключении от чата.
 	SendDisconnect();
 
 	MainSocket.Close();
@@ -313,25 +236,10 @@ void CMFCChatDlg::StopChat()
 		VecSockets[i]->Close();
 		delete [] VecSockets[i];
 	}
-	// Очистим вектор от ненужных элементов.
 	VecSockets.clear();
-
-	ButtonStartServerControl.SetCheck(BST_UNCHECKED);
-	ButtonClientControl.SetCheck(BST_UNCHECKED);
-
-	// Разрешим доступ к управлению для повторных попыток.
-	EnabledControl();
-
-	// В чате нет никого.
+	myServ.EnabledControl();
 	CountPeopleControl.SetWindowText(L"В чате 0 человек");
 	SetWindowText(L"Нет сети!");
-}
-
-void CMFCChatDlg::OnBnClickedBSendMes()
-{
-	CString StrChat;
-	SendWindowControl.GetWindowText(StrChat);
-	SendToChat(StrChat);
 }
 
 void CMFCChatDlg::SendToChat(CString strMessage)
@@ -358,11 +266,6 @@ void CMFCChatDlg::SendBuffer(SENDBUFFER sb, bool toserver)
 			unsigned int send = VecSockets[i]->Send(&sb, sizeof(SENDBUFFER));
 			if (send == sizeof(SENDBUFFER))	SendWindowControl.SetWindowText(L"");
 		}
-
-		// Если непосредственно отправку осуществляет сервер,
-		// отобразим его сообщение в его же окне отправки,
-		// флаг toserver необходим поскольку данная функция
-		// может работать в режиме зеркала см. CChatCppDlg::OnReceive(void).
 		if (toserver)
 		{
 			if (sb.typemessage == m_TypeMessage::tmChat)
@@ -395,7 +298,7 @@ void CMFCChatDlg::SendBuffer(SENDBUFFER sb, bool toserver)
 
 void CMFCChatDlg::OnConnect(BOOL Error)
 {
-	if (Error == TRUE)
+	if (Error)
 	{
 		AfxMessageBox(L"Попытка подключения была отвергнута!\nВозможно сервер еще не создан!");
 		StopChat();
@@ -410,51 +313,18 @@ void CMFCChatDlg::OnConnect(BOOL Error)
 
 void CMFCChatDlg::OnAccept(void)
 {
-
 	CSock* pSock = new CSock;
 	pSock->m_pParent = this;
 
-	// Если все в порядке добавим рабочий сокет в список 
-	// подключенных рабочих сокетов.
 	if (MainSocket.Accept(*pSock) == TRUE)
 	{
 		VecSockets.push_back(pSock);
 		ButtonSendMesControl.EnableWindow(TRUE);
 		ButtonSendFileControl.EnableWindow(TRUE);
 		SendCountPeople();
-
 		SetWindowText(L"Сеть работает!");
 	}
-	else
-	{
-		delete pSock;
-	}
-}
-
-CString CMFCChatDlg::FindIP()
-{
-	CString IP;
-	std::string line;
-	int8_t count = 0;
-	system("ipconfig>ip.txt");
-	std::ifstream IPfile(L"ip.txt");
-	if (IPfile.is_open())
-	{		
-		while (getline(IPfile, line))
-		{
-			if (line.find("IPv4") != -1)
-			{
-				count++;
-				IP = line.c_str();
-				IP = IP.Right(IP.GetLength() - 37);
-				//обычно 2 раза попадается в файлике на винде
-				if (count == 2)	break; 
-			}
-		}
-	}
-	IPfile.close();
-	std::remove("ip.txt");
-	return IP;
+	else delete pSock;
 }
 
 void CMFCChatDlg::SendCountPeople(void)
@@ -464,7 +334,6 @@ void CMFCChatDlg::SendCountPeople(void)
 	temp.Format(L"%d", countpeople);
 	CountPeopleControl.SetWindowText(L"В чате " + temp + L" человек");
 
-	// Отправим сообщение о количествах людей в чате.
 	SENDBUFFER sb;
 	sb.typemessage = m_TypeMessage::tmCountPeople;
 	sb.countpeople = countpeople;
@@ -483,9 +352,7 @@ void CMFCChatDlg::SendDisconnect(void)
 	memcpy(sb.name, s.GetBuffer(), sizeof(TCHAR) * len);
 	sb.typemessage = m_TypeMessage::tmDisconnect;
 
-	// Отсоединение сервера останавливает чат.
-	if (ServerCheck)
-		sb.stopchat = true;
+	if (ServerCheck) sb.stopchat = true;
 
 	SendBuffer(sb, true);
 }
@@ -495,12 +362,10 @@ void CMFCChatDlg::OnReceive(void)
 	SENDBUFFER sb;
 	if (ServerCheck)
 	{
-		// Сервер несет большую нагрузку при получении сообщений.
 		for (uint8_t index = 0; index < (uint8_t)VecSockets.size(); index++)
 		{
 			VecSockets[index]->Receive(&sb, sizeof(SENDBUFFER));
-			// Если кто-то отключился, удаляем этого клиента 
-			// из списка доступных клиентов.
+
 			if (sb.typemessage == m_TypeMessage::tmDisconnect)
 			{
 				VecSockets[index]->Close();
@@ -508,12 +373,9 @@ void CMFCChatDlg::OnReceive(void)
 				VecSockets.erase(VecSockets.begin() + index);
 
 				SendCountPeople();
-
 				SendBuffer(sb, false);
-			
 				break;
 			}
-			// Рассылаем сообщения клиента по сети чата.
 			if (sb.typemessage == m_TypeMessage::tmChat)
 			{
 				SendBuffer(sb, false);
@@ -525,14 +387,9 @@ void CMFCChatDlg::OnReceive(void)
 				break;
 			}
 		}
-
 	}
-	else if (ServerCheck == false)
-	{
-		MainSocket.Receive(&sb, sizeof(SENDBUFFER));
-	}
+	else if (!ServerCheck)	MainSocket.Receive(&sb, sizeof(SENDBUFFER));
 
-	// Обработка принятого сообщения на основе его типа.
 	switch (sb.typemessage)
 	{
 	case m_TypeMessage::tmCountPeople:
@@ -557,17 +414,13 @@ void CMFCChatDlg::OnReceive(void)
 		CString strChat;
 		ChatWindowControl.GetWindowText(strChat);
 
-		// Если принято сообщение об остановки чата(отключении сервера),
-		// изменим содержимое сообщения.
-		if (sb.stopchat == true)
+		if (sb.stopchat)
 		{
 			StopChat();
 			strChat +=  L"    " + CString(sb.name) + L": Чат остановлен!" + L"\r\n";
 		}
-		else
-		{
-			strChat += L"    " + CString(sb.name) + L" - покинул(а) чат!" + L"\r\n";
-		}
+		else strChat += L"    " + CString(sb.name) + L" - покинул(а) чат!" + L"\r\n";
+
 		ChatWindowControl.SetWindowText(strChat);
 		uint16_t number_line = ChatWindowControl.GetLineCount();
 		ChatWindowControl.LineScroll(number_line);
@@ -575,7 +428,6 @@ void CMFCChatDlg::OnReceive(void)
 	break;
 	case m_TypeMessage::tmFile:
 	{ 
-
 		std::ofstream fout( CString(sb.filename), std::ios::binary | std::ios::app);
 
 		if (fout.is_open())	fout.write(sb.filebuffer, sb.filebuffersize);
@@ -588,4 +440,3 @@ void CMFCChatDlg::OnReceive(void)
 		break;
 	}
 }
-
